@@ -1,0 +1,414 @@
+{
+  "AE": {
+    "allowed_sdtm_vars": {
+      "STUDYID": {
+        "required": true,
+        "expected": true
+      },
+      "DOMAIN": {
+        "required": true,
+        "expected": true
+      },
+      "USUBJID": {
+        "required": true,
+        "expected": true
+      },
+      "AESEQ": {
+        "required": true,
+        "expected": true
+      },
+      "AETERM": {
+        "required": true,
+        "expected": true
+      },
+      "AEDECOD": {
+        "required": false,
+        "expected": true
+      },
+      "AELLT": {
+        "required": false,
+        "expected": false
+      },
+      "AEPTCD": {
+        "required": false,
+        "expected": false
+      },
+      "AELLTCD": {
+        "required": false,
+        "expected": false
+      },
+      "AEBODSYS": {
+        "required": false,
+        "expected": true
+      },
+      "AECAT": {
+        "required": false,
+        "expected": false
+      },
+      "AESCAT": {
+        "required": false,
+        "expected": false
+      },
+      "AESEV": {
+        "required": false,
+        "expected": true
+      },
+      "AETOXGR": {
+        "required": false,
+        "expected": true
+      },
+      "AESER": {
+        "required": false,
+        "expected": true
+      },
+      "AESDTH": {
+        "required": false,
+        "expected": false
+      },
+      "AESLIFE": {
+        "required": false,
+        "expected": false
+      },
+      "AESHOSP": {
+        "required": false,
+        "expected": false
+      },
+      "AESDISAB": {
+        "required": false,
+        "expected": false
+      },
+      "AESCONG": {
+        "required": false,
+        "expected": false
+      },
+      "AESOD": {
+        "required": false,
+        "expected": false
+      },
+      "AESPID": {
+        "required": false,
+        "expected": false
+      },
+      "AEOUT": {
+        "required": false,
+        "expected": true
+      },
+      "AEREL": {
+        "required": false,
+        "expected": true
+      },
+      "AEACN": {
+        "required": false,
+        "expected": true
+      },
+      "AEPRESP": {
+        "required": false,
+        "expected": false
+      },
+      "AESTDTC": {
+        "required": false,
+        "expected": true
+      },
+      "AEENDTC": {
+        "required": false,
+        "expected": true
+      },
+      "AESTDY": {
+        "required": false,
+        "expected": false
+      },
+      "AEENDY": {
+        "required": false,
+        "expected": false
+      }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "AESEQ",
+      "AETERM",
+      "AEDECOD",
+      "AEBODSYS",
+      "AESTDTC",
+      "AEENDTC",
+      "AESEV",
+      "AESER",
+      "AEOUT",
+      "AEREL",
+      "AEACN"
+    ],
+    "sequence_field": "AESEQ"
+  },
+  "DM": {
+    "allowed_sdtm_vars": {
+      "STUDYID": {
+        "required": true,
+        "expected": true
+      },
+      "DOMAIN": {
+        "required": true,
+        "expected": true
+      },
+      "USUBJID": {
+        "required": true,
+        "expected": true
+      },
+      "SUBJID": {
+        "required": true,
+        "expected": true
+      },
+      "RFSTDTC": {
+        "required": false,
+        "expected": true
+      },
+      "RFENDTC": {
+        "required": false,
+        "expected": true
+      },
+      "SEX": {
+        "required": false,
+        "expected": true
+      },
+      "AGE": {
+        "required": false,
+        "expected": true
+      },
+      "AGEU": {
+        "required": false,
+        "expected": true
+      },
+      "RACE": {
+        "required": false,
+        "expected": true
+      },
+      "ETHNIC": {
+        "required": false,
+        "expected": true
+      },
+      "ARM": {
+        "required": false,
+        "expected": true
+      },
+      "ARMCD": {
+        "required": false,
+        "expected": true
+      },
+      "COUNTRY": {
+        "required": false,
+        "expected": true
+      }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "SUBJID",
+      "RFSTDTC",
+      "SEX",
+      "AGE",
+      "AGEU",
+      "RACE",
+      "ETHNIC",
+      "ARM",
+      "ARMCD",
+      "COUNTRY"
+    ]
+  },
+  "VS": {
+    "allowed_sdtm_vars": {
+      "STUDYID": {
+        "required": true,
+        "expected": true
+      },
+      "DOMAIN": {
+        "required": true,
+        "expected": true
+      },
+      "USUBJID": {
+        "required": true,
+        "expected": true
+      },
+      "VSSEQ": {
+        "required": true,
+        "expected": true
+      },
+      "VSTESTCD": {
+        "required": true,
+        "expected": true
+      },
+      "VSTEST": {
+        "required": true,
+        "expected": true
+      },
+      "VSORRES": {
+        "required": false,
+        "expected": true
+      },
+      "VSORRESU": {
+        "required": false,
+        "expected": true
+      },
+      "VSSTRESN": {
+        "required": false,
+        "expected": false
+      },
+      "VSSTRESU": {
+        "required": false,
+        "expected": false
+      },
+      "VSDTC": {
+        "required": false,
+        "expected": true
+      }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "VSSEQ",
+      "VSTESTCD",
+      "VSTEST",
+      "VSORRES",
+      "VSORRESU",
+      "VSDTC"
+    ],
+    "sequence_field": "VSSEQ"
+  },
+  "LB": {
+    "allowed_sdtm_vars": {
+      "STUDYID": {
+        "required": true,
+        "expected": true
+      },
+      "DOMAIN": {
+        "required": true,
+        "expected": true
+      },
+      "USUBJID": {
+        "required": true,
+        "expected": true
+      },
+      "LBSEQ": {
+        "required": true,
+        "expected": true
+      },
+      "LBTESTCD": {
+        "required": true,
+        "expected": true
+      },
+      "LBTEST": {
+        "required": true,
+        "expected": true
+      },
+      "LBORRES": {
+        "required": false,
+        "expected": true
+      },
+      "LBORRESU": {
+        "required": false,
+        "expected": true
+      },
+      "LBDTC": {
+        "required": false,
+        "expected": true
+      }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "LBSEQ",
+      "LBTESTCD",
+      "LBTEST",
+      "LBORRES",
+      "LBORRESU",
+      "LBDTC"
+    ],
+    "sequence_field": "LBSEQ"
+  },
+  "DS": {
+    "allowed_sdtm_vars": {
+      "STUDYID": {
+        "required": true,
+        "expected": true
+      },
+      "DOMAIN": {
+        "required": true,
+        "expected": true
+      },
+      "USUBJID": {
+        "required": true,
+        "expected": true
+      },
+      "DSSEQ": {
+        "required": true,
+        "expected": true
+      },
+      "DSTERM": {
+        "required": true,
+        "expected": true
+      },
+      "DSDECOD": {
+        "required": false,
+        "expected": true
+      },
+      "DSSTDTC": {
+        "required": false,
+        "expected": true
+      }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "DSSEQ",
+      "DSTERM",
+      "DSDECOD",
+      "DSSTDTC"
+    ],
+    "sequence_field": "DSSEQ"
+  },
+  "MH": {
+    "allowed_sdtm_vars": {
+      "STUDYID": {
+        "required": true,
+        "expected": true
+      },
+      "DOMAIN": {
+        "required": true,
+        "expected": true
+      },
+      "USUBJID": {
+        "required": true,
+        "expected": true
+      },
+      "MHSEQ": {
+        "required": true,
+        "expected": true
+      },
+      "MHTERM": {
+        "required": true,
+        "expected": true
+      },
+      "MHDECOD": {
+        "required": false,
+        "expected": true
+      },
+      "MHSTDTC": {
+        "required": false,
+        "expected": true
+      }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "MHSEQ",
+      "MHTERM",
+      "MHDECOD",
+      "MHSTDTC"
+    ],
+    "sequence_field": "MHSEQ"
+  }
+}

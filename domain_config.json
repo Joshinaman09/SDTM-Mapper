@@ -1,0 +1,192 @@
+{
+  "AE": {
+    "allowed_sdtm_vars": {
+      "STUDYID": { "core": "Req" },
+      "DOMAIN": { "core": "Req" },
+      "USUBJID": { "core": "Req" },
+      "AESEQ": { "core": "Req" },
+
+      "AETERM": { "core": "Req" },
+      "AEDECOD": { "core": "Exp" },
+      "AELLT": { "core": "Perm" },
+      "AEPTCD": { "core": "Perm" },
+      "AELLTCD": { "core": "Perm" },
+      "AEBODSYS": { "core": "Exp" },
+      "AECAT": { "core": "Perm" },
+      "AESCAT": { "core": "Perm" },
+      "AESEV": { "core": "Exp" },
+      "AETOXGR": { "core": "Exp" },
+      "AESER": { "core": "Exp" },
+      "AESDTH": { "core": "Perm" },
+      "AESLIFE": { "core": "Perm" },
+      "AESHOSP": { "core": "Perm" },
+      "AESDISAB": { "core": "Perm" },
+      "AESCONG": { "core": "Perm" },
+      "AESOD": { "core": "Perm" },
+      "AESPID": { "core": "Perm" },
+      "AEOUT": { "core": "Exp" },
+      "AEREL": { "core": "Exp" },
+      "AEACN": { "core": "Exp" },
+      "AEPRESP": { "core": "Perm" },
+
+      "AESTDTC": { "core": "Exp" },
+      "AEENDTC": { "core": "Exp" },
+      "AESTDY": { "core": "Perm" },
+      "AEENDY": { "core": "Perm" }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "AESEQ",
+      "AETERM",
+      "AEDECOD",
+      "AEBODSYS",
+      "AESTDTC",
+      "AEENDTC",
+      "AESEV",
+      "AESER",
+      "AEOUT",
+      "AEREL",
+      "AEACN"
+    ],
+    "sequence_field": "AESEQ"
+  },
+
+  "DM": {
+    "allowed_sdtm_vars": {
+      "STUDYID": { "core": "Req" },
+      "DOMAIN": { "core": "Req" },
+      "USUBJID": { "core": "Req" },
+      "SUBJID": { "core": "Req" },
+
+      "RFSTDTC": { "core": "Exp" },
+      "RFENDTC": { "core": "Exp" },
+      "SEX": { "core": "Exp" },
+      "AGE": { "core": "Exp" },
+      "AGEU": { "core": "Exp" },
+      "RACE": { "core": "Exp" },
+      "ETHNIC": { "core": "Exp" },
+      "ARM": { "core": "Exp" },
+      "ARMCD": { "core": "Exp" },
+      "COUNTRY": { "core": "Exp" }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "SUBJID",
+      "RFSTDTC",
+      "SEX",
+      "AGE",
+      "AGEU",
+      "RACE",
+      "ETHNIC",
+      "ARM",
+      "ARMCD",
+      "COUNTRY"
+    ]
+  },
+
+  "VS": {
+    "allowed_sdtm_vars": {
+      "STUDYID": { "core": "Req" },
+      "DOMAIN": { "core": "Req" },
+      "USUBJID": { "core": "Req" },
+      "VSSEQ": { "core": "Req" },
+
+      "VSTESTCD": { "core": "Req" },
+      "VSTEST": { "core": "Req" },
+      "VSORRES": { "core": "Exp" },
+      "VSORRESU": { "core": "Exp" },
+      "VSSTRESN": { "core": "Perm" },
+      "VSSTRESU": { "core": "Perm" },
+      "VSDTC": { "core": "Exp" }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "VSSEQ",
+      "VSTESTCD",
+      "VSTEST",
+      "VSORRES",
+      "VSORRESU",
+      "VSDTC"
+    ],
+    "sequence_field": "VSSEQ"
+  },
+
+  "LB": {
+    "allowed_sdtm_vars": {
+      "STUDYID": { "core": "Req" },
+      "DOMAIN": { "core": "Req" },
+      "USUBJID": { "core": "Req" },
+      "LBSEQ": { "core": "Req" },
+
+      "LBTESTCD": { "core": "Req" },
+      "LBTEST": { "core": "Req" },
+      "LBORRES": { "core": "Exp" },
+      "LBORRESU": { "core": "Exp" },
+      "LBDTC": { "core": "Exp" }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "LBSEQ",
+      "LBTESTCD",
+      "LBTEST",
+      "LBORRES",
+      "LBORRESU",
+      "LBDTC"
+    ],
+    "sequence_field": "LBSEQ"
+  },
+
+  "DS": {
+    "allowed_sdtm_vars": {
+      "STUDYID": { "core": "Req" },
+      "DOMAIN": { "core": "Req" },
+      "USUBJID": { "core": "Req" },
+      "DSSEQ": { "core": "Req" },
+
+      "DSTERM": { "core": "Req" },
+      "DSDECOD": { "core": "Exp" },
+      "DSSTDTC": { "core": "Exp" }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "DSSEQ",
+      "DSTERM",
+      "DSDECOD",
+      "DSSTDTC"
+    ],
+    "sequence_field": "DSSEQ"
+  },
+
+  "MH": {
+    "allowed_sdtm_vars": {
+      "STUDYID": { "core": "Req" },
+      "DOMAIN": { "core": "Req" },
+      "USUBJID": { "core": "Req" },
+      "MHSEQ": { "core": "Req" },
+
+      "MHTERM": { "core": "Req" },
+      "MHDECOD": { "core": "Exp" },
+      "MHSTDTC": { "core": "Exp" }
+    },
+    "core_columns": [
+      "STUDYID",
+      "DOMAIN",
+      "USUBJID",
+      "MHSEQ",
+      "MHTERM",
+      "MHDECOD",
+      "MHSTDTC"
+    ],
+    "sequence_field": "MHSEQ"
+  }
+}
