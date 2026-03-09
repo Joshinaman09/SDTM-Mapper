@@ -9,8 +9,7 @@ from openai import OpenAI
 # CONFIG
 # ===============================
 MODEL_NAME = "gpt-5.2"
-client = OpenAI(api_key="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")  # Uses env var if empty
-
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 st.set_page_config(layout="wide")
 st.title("🧬 Raw → SDTM Mapping (MAIN + SUPP)")
 
@@ -279,3 +278,4 @@ if not supp_df.empty:
         file_name=f"SUPP{domain}.csv",
         mime="text/csv"
     )
+
