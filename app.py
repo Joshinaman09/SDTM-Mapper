@@ -8,7 +8,7 @@ from openai import OpenAI
 # ===============================
 # CONFIG
 # ===============================
-MODEL_NAME = "gpt-5.2"
+MODEL_NAME = "gpt-4o-mini"
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 st.set_page_config(layout="wide")
 st.title("🧬 Raw → SDTM Mapping (MAIN + SUPP)")
@@ -278,4 +278,5 @@ if not supp_df.empty:
         file_name=f"SUPP{domain}.csv",
         mime="text/csv"
     )
+
 
