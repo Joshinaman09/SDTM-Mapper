@@ -8,6 +8,76 @@ import re
 from openai import OpenAI
 
 # ===============================
+# PAGE CONFIG
+# ===============================
+st.set_page_config(
+    page_title="TrialMapper AI",
+    layout="wide"
+)
+
+# ===============================
+# HEADER (LOGO + TITLE)
+# ===============================
+col1, col2 = st.columns([1,6])
+
+with col1:
+    st.image("logo.png", width=120)
+
+with col2:
+    st.markdown("""
+    # 🧬 TrialMapper AI
+
+    **AI-Powered Raw → SDTM Mapping Engine**
+
+    Automatically convert raw clinical datasets into **CDISC SDTM compliant datasets** using AI assisted metadata interpretation.
+    """)
+
+st.markdown("---")
+
+# ===============================
+# SIDEBAR INFO
+# ===============================
+with st.sidebar:
+
+    st.header("About TrialMapper AI")
+
+    st.write("""
+AI powered SDTM mapping assistant designed for:
+
+• Clinical Data Managers  
+• CDISC Programmers  
+• Biostatisticians  
+• Clinical Data Engineers  
+
+Key capabilities:
+
+• AI-driven SDTM variable mapping  
+• Raw metadata analysis  
+• MAIN + SUPP dataset generation  
+• Duplicate mapping detection  
+• Core variable validation
+""")
+
+# ===============================
+# WELCOME DESCRIPTION
+# ===============================
+st.info("""
+### 🚀 How This Tool Works
+
+1️⃣ Upload a **raw SAS dataset (.XPT or .sas7bdat)**  
+2️⃣ AI analyzes **variable names, labels, and sample values**  
+3️⃣ Suggested **SDTM mappings are generated automatically**  
+4️⃣ You can manually adjust mappings  
+5️⃣ The tool generates:
+
+• **MAIN SDTM dataset**  
+• **SUPP supplemental dataset**  
+• **Mapping validation**
+
+Designed to accelerate **clinical data standardization workflows**.
+""")
+
+# ===============================
 # CONFIG
 # ===============================
 MODEL_NAME = "gpt-4o-mini"
@@ -19,9 +89,6 @@ if not api_key:
     st.stop()
 
 client = OpenAI(api_key=api_key)
-
-st.set_page_config(layout="wide")
-st.title("🧬 Raw → SDTM Mapping (MAIN + SUPP)")
 
 # ===============================
 # JSON CLEANER
@@ -167,7 +234,7 @@ Rules:
 # ===============================
 # GENERATE MAPPING
 # ===============================
-if st.button("🧠 Generate Mapping via LLM"):
+if st.button("🚀 Generate AI Mapping"):
 
     with st.spinner("Calling OpenAI..."):
 
