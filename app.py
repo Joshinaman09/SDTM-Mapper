@@ -182,11 +182,22 @@ column_mappings = {
 for key, df in dfs.items():
     standardize_column_names(df, column_mappings)
 
+# ===============================
+# Drop duplicate USUBJID columns
+# ===============================
+def drop_duplicate_usubjid_columns(df):
+    """Function to drop any duplicate 'USUBJID' columns generated after merging."""
+    cols = [col for col in df.columns if 'USUBJID' not in col]
+    return df[cols + ['USUBJID']]
+
 # Merge the DataFrames based on a common identifier 'USUBJID'
 merged_df = dfs['LAB.xpt'].merge(dfs['LAB1.xpt'], on="USUBJID", how="outer")
 merged_df = merged_df.merge(dfs['LAB2.xpt'], on="USUBJID", how="outer")
 merged_df = merged_df.merge(dfs['labcode.xpt'], on="USUBJID", how="outer")
 merged_df = merged_df.merge(dfs['VS.xpt'], on="USUBJID", how="outer")
+
+# Drop duplicate 'USUBJID' columns, if any
+merged_df = drop_duplicate_usubjid_columns(merged_df)
 
 st.success(f"Merged dataset with {merged_df.shape[0]} rows and {merged_df.shape[1]} columns.")
 
@@ -372,4 +383,3 @@ st.download_button(
     file_name=f"{domain}.csv",
     mime="text/csv"
 )
-
