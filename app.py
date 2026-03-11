@@ -124,17 +124,26 @@ uploaded_files = [
 ]
 
 # ===============================
-# Load SAS Files
+# Load SAS Files with Error Handling
 # ===============================
 def load_sas_file(file_path):
-    if file_path.lower().endswith(".xpt"):
-        df, _ = pyreadstat.read_xport(file_path)
-    else:
-        df, _ = pyreadstat.read_sas7bdat(file_path)
-    return df
+    """Function to load SAS files with error handling."""
+    try:
+        if file_path.lower().endswith(".xpt"):
+            df, _ = pyreadstat.read_xport(file_path)
+        else:
+            df, _ = pyreadstat.read_sas7bdat(file_path)
+        return df
+    except pyreadstat.pyreadstat.PyreadstatError as e:
+        st.error(f"Error reading {file_path}: {e}")
+        return None
 
 # Load the uploaded SAS files
 dfs = {file.split("/")[-1]: load_sas_file(file) for file in uploaded_files}
+
+# Check if files are loaded properly
+if any(df is None for df in dfs.values()):
+    st.stop()  # Stop if any file couldn't be loaded
 
 # Merge the DataFrames based on a common identifier (assuming 'USUBJID' is the key column)
 merged_df = dfs['LAB'].merge(dfs['LAB1'], on="USUBJID", how="outer")
