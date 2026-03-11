@@ -120,7 +120,7 @@ sequence_field = cfg.get("sequence_field")
 # FILE UPLOAD
 # ===============================
 uploaded_files = [
-    "LAB.xpt", "LAB1.xpt", "LAB2.xpt", "labcode.xpt", "VS.xpt"
+    "/mnt/data/LAB.xpt", "/mnt/data/LAB1.xpt", "/mnt/data/LAB2.xpt", "/mnt/data/labcode.xpt", "/mnt/data/VS.xpt"
 ]
 
 # ===============================
@@ -139,17 +139,24 @@ def load_sas_file(file_path):
         return None
 
 # Load the uploaded SAS files
-dfs = {file.split("/")[-1]: load_sas_file(file) for file in uploaded_files}
+dfs = {}
+for file in uploaded_files:
+    file_name = file.split("/")[-1]
+    dfs[file_name] = load_sas_file(file)
+    if dfs[file_name] is None:
+        st.error(f"Failed to load {file_name}. Please check the file.")
+        st.stop()  # Stop if any file failed to load
 
-# Check if files are loaded properly
-if any(df is None for df in dfs.values()):
-    st.stop()  # Stop if any file couldn't be loaded
+# Check that 'LAB' file is loaded
+if 'LAB.xpt' not in dfs:
+    st.error("The 'LAB.xpt' file is missing or could not be loaded.")
+    st.stop()
 
 # Merge the DataFrames based on a common identifier (assuming 'USUBJID' is the key column)
-merged_df = dfs['LAB'].merge(dfs['LAB1'], on="USUBJID", how="outer")
-merged_df = merged_df.merge(dfs['LAB2'], on="USUBJID", how="outer")
-merged_df = merged_df.merge(dfs['labcode'], on="USUBJID", how="outer")
-merged_df = merged_df.merge(dfs['VS'], on="USUBJID", how="outer")
+merged_df = dfs['LAB.xpt'].merge(dfs['LAB1.xpt'], on="USUBJID", how="outer")
+merged_df = merged_df.merge(dfs['LAB2.xpt'], on="USUBJID", how="outer")
+merged_df = merged_df.merge(dfs['labcode.xpt'], on="USUBJID", how="outer")
+merged_df = merged_df.merge(dfs['VS.xpt'], on="USUBJID", how="outer")
 
 st.success(f"Merged dataset with {merged_df.shape[0]} rows and {merged_df.shape[1]} columns.")
 
@@ -335,4 +342,3 @@ st.download_button(
     file_name=f"{domain}.csv",
     mime="text/csv"
 )
-
