@@ -120,7 +120,7 @@ sequence_field = cfg.get("sequence_field")
 # FILE UPLOAD
 # ===============================
 uploaded_files = [
-    "LAB.xpt", "LAB1.xpt", "LAB2.xpt", "labcode.xpt", "VS.xpt"
+    "/mnt/data/LAB.xpt", "/mnt/data/LAB1.xpt", "/mnt/data/LAB2.xpt", "/mnt/data/labcode.xpt", "/mnt/data/VS.xpt"
 ]
 
 # ===============================
@@ -372,4 +372,3 @@ st.download_button(
     file_name=f"{domain}.csv",
     mime="text/csv"
 )
-
