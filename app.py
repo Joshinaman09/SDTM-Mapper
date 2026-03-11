@@ -120,7 +120,7 @@ sequence_field = cfg.get("sequence_field")
 # FILE UPLOAD
 # ===============================
 uploaded_files = [
-    "LAB.xpt", "LAB1.xpt", "LAB2.xpt", "labcode.xpt", "VS.xpt"
+    "/mnt/data/LAB.xpt", "/mnt/data/LAB1.xpt", "/mnt/data/LAB2.xpt", "/mnt/data/labcode.xpt", "/mnt/data/VS.xpt"
 ]
 
 # ===============================
@@ -174,8 +174,8 @@ def standardize_column_names(df, column_mapping):
 
 # Define column mappings (adjust based on the column names you find)
 column_mappings = {
-    'SUBJID': 'USUBJID',   # Example: If 'SUBJID' exists instead of 'USUBJID'
-    'subject_id': 'USUBJID'  # Example: If 'subject_id' exists instead of 'USUBJID'
+    'SUBJECT': 'USUBJID',  # 'SUBJECT' column in the LAB dataset maps to 'USUBJID'
+    'PATIENT': 'USUBJID'   # 'PATIENT' column in LAB, LAB1, LAB2 maps to 'USUBJID'
 }
 
 # Standardize columns in each dataset
@@ -372,4 +372,3 @@ st.download_button(
     file_name=f"{domain}.csv",
     mime="text/csv"
 )
-
