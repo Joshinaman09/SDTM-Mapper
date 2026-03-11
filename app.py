@@ -18,7 +18,7 @@ st.set_page_config(
 # ===============================
 # HEADER (LOGO + TITLE)
 # ===============================
-col1, col2 = st.columns([1,6])
+col1, col2 = st.columns([1, 6])
 
 with col1:
     st.image("logo.png", width=120)
@@ -120,7 +120,7 @@ sequence_field = cfg.get("sequence_field")
 # FILE UPLOAD
 # ===============================
 uploaded_files = [
-    "LAB.xpt", "LAB1.xpt", "LAB2.xpt", "labcode.xpt", "VS.xpt"
+    "/mnt/data/LAB.xpt", "/mnt/data/LAB1.xpt", "/mnt/data/LAB2.xpt", "/mnt/data/labcode.xpt", "/mnt/data/VS.xpt"
 ]
 
 # ===============================
@@ -152,7 +152,37 @@ if 'LAB.xpt' not in dfs:
     st.error("The 'LAB.xpt' file is missing or could not be loaded.")
     st.stop()
 
-# Merge the DataFrames based on a common identifier (assuming 'USUBJID' is the key column)
+# ===============================
+# Check column names
+# ===============================
+def check_columns(dfs):
+    """Function to print column names of each dataframe."""
+    for key, df in dfs.items():
+        st.write(f"Columns in {key}: {df.columns.tolist()}")
+
+# Check columns of the loaded files
+check_columns(dfs)
+
+# ===============================
+# Rename columns if necessary
+# ===============================
+# Assuming the common column for merging should be 'USUBJID'
+# We will standardize column names before merging
+def standardize_column_names(df, column_mapping):
+    """Standardize column names to 'USUBJID' if they are named differently."""
+    df.rename(columns=column_mapping, inplace=True)
+
+# Define column mappings (adjust based on the column names you find)
+column_mappings = {
+    'SUBJID': 'USUBJID',   # Example: If 'SUBJID' exists instead of 'USUBJID'
+    'subject_id': 'USUBJID'  # Example: If 'subject_id' exists instead of 'USUBJID'
+}
+
+# Standardize columns in each dataset
+for key, df in dfs.items():
+    standardize_column_names(df, column_mappings)
+
+# Merge the DataFrames based on a common identifier 'USUBJID'
 merged_df = dfs['LAB.xpt'].merge(dfs['LAB1.xpt'], on="USUBJID", how="outer")
 merged_df = merged_df.merge(dfs['LAB2.xpt'], on="USUBJID", how="outer")
 merged_df = merged_df.merge(dfs['labcode.xpt'], on="USUBJID", how="outer")
@@ -254,7 +284,7 @@ st.subheader("🔗 Raw → SDTM Mapping")
 
 updated = []
 
-header = st.columns([2,4,3,2,4])
+header = st.columns([2, 4, 3, 2, 4])
 
 header[0].markdown("**Raw**")
 header[1].markdown("**Raw Label**")
@@ -263,7 +293,7 @@ header[3].markdown("**Type**")
 header[4].markdown("**Core**")
 
 for i, m in enumerate(st.session_state["mappings"]):
-    c1,c2,c3,c4,c5 = st.columns([2,4,3,2,4])
+    c1, c2, c3, c4, c5 = st.columns([2, 4, 3, 2, 4])
     c1.write(m["raw"])
     c2.write(m["raw_label"])
 
@@ -272,13 +302,13 @@ for i, m in enumerate(st.session_state["mappings"]):
     sdtm_val = c3.selectbox(
         "",
         options=[None] + allowed_sdtm_vars,
-        index=(allowed_sdtm_vars.index(guess)+1 if guess else 0),
+        index=(allowed_sdtm_vars.index(guess) + 1 if guess else 0),
         key=f"sdtm_{i}"
     )
 
     c4.write(m["type"])
 
-    core = sdtm_meta.get(sdtm_val,{}).get("core")
+    core = sdtm_meta.get(sdtm_val, {}).get("core")
     c5.write(core if core else "-")
 
     updated.append({
@@ -342,4 +372,3 @@ st.download_button(
     file_name=f"{domain}.csv",
     mime="text/csv"
 )
-
