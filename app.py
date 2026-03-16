@@ -23,33 +23,11 @@ with col1:
 with col2:
     st.markdown("""
     # 🧬 TrialMapper AI
+
     **AI-Powered Raw → SDTM Mapping Engine**
     """)
 
 st.markdown("---")
-
-# ===============================
-# SIDEBAR
-# ===============================
-with st.sidebar:
-
-    st.header("About TrialMapper AI")
-
-    st.write("""
-AI powered SDTM mapping assistant
-
-• Clinical Data Managers  
-• CDISC Programmers  
-• Biostatisticians  
-• Clinical Data Engineers  
-
-Features:
-
-• AI-driven SDTM mapping  
-• Metadata analysis  
-• MAIN + SUPP dataset generation  
-• Duplicate detection
-""")
 
 # ===============================
 # CONFIG
@@ -59,7 +37,7 @@ MODEL_NAME = "gpt-4o-mini"
 api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
 
 if not api_key:
-    st.error("OPENAI_API_KEY not found.")
+    st.error("OPENAI_API_KEY not found")
     st.stop()
 
 client = OpenAI(api_key=api_key)
@@ -99,65 +77,32 @@ sequence_field = cfg.get("sequence_field")
 # ===============================
 # FILE UPLOAD
 # ===============================
-uploaded_files = st.file_uploader(
-    "Upload SAS Files",
-    type=["xpt","sas7bdat"],
-    accept_multiple_files=True
+uploaded = st.file_uploader(
+    "Upload Raw SAS File",
+    type=["xpt","sas7bdat"]
 )
 
-primary_key = st.text_input(
-    "Optional Merge Key (Example: LABCODE, USUBJID)",
-    help="Leave empty to append files"
-)
-
-if not uploaded_files:
+if not uploaded:
     st.stop()
 
 # ===============================
-# LOAD FILES
+# SAVE FILE
 # ===============================
-dfs = []
+suffix = ".xpt" if uploaded.name.lower().endswith(".xpt") else ".sas7bdat"
 
-for uploaded in uploaded_files:
-
-    suffix = ".xpt" if uploaded.name.lower().endswith(".xpt") else ".sas7bdat"
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-        tmp.write(uploaded.read())
-        tmp_path = tmp.name
-
-    if suffix == ".xpt":
-        df, meta = pyreadstat.read_xport(tmp_path)
-    else:
-        df, meta = pyreadstat.read_sas7bdat(tmp_path)
-
-    dfs.append(df)
+with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+    tmp.write(uploaded.read())
+    tmp_path = tmp.name
 
 # ===============================
-# APPEND OR MERGE
+# READ SAS
 # ===============================
-if primary_key:
-
-    st.info(f"Merging files using key: {primary_key}")
-
-    df_raw = dfs[0]
-
-    for df in dfs[1:]:
-
-        df_raw = pd.merge(
-            df_raw,
-            df,
-            on=primary_key,
-            how="left"
-        )
-
+if suffix == ".xpt":
+    df_raw, meta = pyreadstat.read_xport(tmp_path)
 else:
+    df_raw, meta = pyreadstat.read_sas7bdat(tmp_path)
 
-    st.info("Appending files")
-
-    df_raw = pd.concat(dfs, ignore_index=True)
-
-st.success(f"Dataset shape: {df_raw.shape}")
+st.success(f"Loaded {df_raw.shape[1]} raw variables")
 
 # ===============================
 # FIRST NON EMPTY ROW
@@ -176,10 +121,14 @@ raw_metadata = []
 
 for col in df_raw.columns:
 
+    try:
+        label = meta.column_labels[meta.column_names.index(col)]
+    except:
+        label = ""
+
     sample_val = None
 
     if sample_row is not None:
-
         v = sample_row[col]
 
         if not pd.isna(v):
@@ -187,13 +136,12 @@ for col in df_raw.columns:
 
     raw_metadata.append({
         "raw": col,
-        "raw_label": col,
+        "raw_label": label,
         "type": "Character" if df_raw[col].dtype == object else "Numeric",
         "sample_value": sample_val
     })
 
 st.subheader("📄 Raw Metadata")
-
 st.dataframe(pd.DataFrame(raw_metadata), use_container_width=True)
 
 # ===============================
@@ -202,7 +150,7 @@ st.dataframe(pd.DataFrame(raw_metadata), use_container_width=True)
 prompt = f"""
 You are an SDTM mapping expert.
 
-Target domain: {domain}
+Target SDTM domain: {domain}
 
 Raw variables:
 
@@ -218,11 +166,24 @@ Return JSON only.
 "mappings":[
 {{
 "raw":"",
+"raw_label":"",
+"sample_value":"",
 "sdtm":"",
 "type":""
 }}
 ]
 }}
+
+Rules:
+Map raw variables to correct SDTM variables using CDISC standards.
+
+Examples:
+
+SUBJECT → USUBJID  
+STUDY → STUDYID  
+LABCODE → LBTESTCD  
+LABVALUE → LBORRES  
+LAB_UNIT → LBORRESU
 """
 
 # ===============================
@@ -248,9 +209,7 @@ if st.button("🚀 Generate AI Mapping"):
     except Exception as e:
 
         st.error(f"LLM returned invalid JSON: {e}")
-
         st.code(result)
-
         st.stop()
 
 if "mappings" not in st.session_state:
@@ -263,7 +222,7 @@ st.subheader("🔗 Raw → SDTM Mapping")
 
 updated = []
 
-header = st.columns([2,4,3])
+header = st.columns([2,4,2])
 
 header[0].markdown("**Raw**")
 header[1].markdown("**SDTM Variable**")
@@ -271,13 +230,27 @@ header[2].markdown("**Type**")
 
 for i, m in enumerate(st.session_state["mappings"]):
 
-    c1,c2,c3 = st.columns([2,4,3])
+    c1,c2,c3 = st.columns([2,4,2])
 
     c1.write(m["raw"])
+
+    # -----------------------------
+    # FIXED PRESELECT LOGIC
+    # -----------------------------
+    guess = m.get("sdtm")
+
+    if guess not in allowed_sdtm_vars:
+        guess = None
+
+    index_val = 0
+
+    if guess:
+        index_val = allowed_sdtm_vars.index(guess) + 1
 
     sdtm_val = c2.selectbox(
         "",
         options=[None] + allowed_sdtm_vars,
+        index=index_val,
         key=f"sdtm_{i}"
     )
 
@@ -298,22 +271,56 @@ main_df = pd.DataFrame()
 for m in updated:
 
     if m["sdtm"]:
-
         main_df[m["sdtm"]] = df_raw[m["raw"]]
 
 for col in core_cols:
-
     if col not in main_df.columns:
-
         main_df[col] = None
 
 main_df["DOMAIN"] = domain
 
 if sequence_field and sequence_field not in main_df.columns:
-
     main_df[sequence_field] = range(1,len(main_df)+1)
 
 st.dataframe(main_df.head(20), use_container_width=True)
+
+# ===============================
+# BUILD SUPP DOMAIN
+# ===============================
+st.subheader("📦 SUPP Domain Preview")
+
+supp_rows = []
+
+unmapped = [m for m in updated if m["sdtm"] is None]
+
+for idx,row in main_df.iterrows():
+
+    for m in unmapped:
+
+        val = df_raw.loc[idx, m["raw"]]
+
+        if pd.isna(val):
+            continue
+
+        supp_rows.append({
+            "STUDYID": row.get("STUDYID"),
+            "RDOMAIN": domain,
+            "USUBJID": row.get("USUBJID"),
+            "IDVAR": sequence_field,
+            "IDVARVAL": row.get(sequence_field),
+            "QNAM": m["raw"].upper()[:8],
+            "QLABEL": m["raw"],
+            "QVAL": str(val),
+            "QORIG": "CRF",
+            "QEVAL": None
+        })
+
+supp_df = pd.DataFrame(supp_rows)
+
+if supp_df.empty:
+    st.info("No SUPP records generated")
+else:
+    st.dataframe(supp_df.head(20), use_container_width=True)
 
 # ===============================
 # DOWNLOAD
@@ -324,3 +331,12 @@ st.download_button(
     file_name=f"{domain}.csv",
     mime="text/csv"
 )
+
+if not supp_df.empty:
+
+    st.download_button(
+        "⬇ Download SUPP Domain",
+        supp_df.to_csv(index=False),
+        file_name=f"SUPP{domain}.csv",
+        mime="text/csv"
+    )
