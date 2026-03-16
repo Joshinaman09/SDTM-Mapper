@@ -280,7 +280,7 @@ if other_tables:
     do_merge = st.checkbox("Merge main table with another table")
     if do_merge:
         merge_table = st.selectbox("Select reference / lookup table to merge", other_tables)
-        candidate_keys = sorted(list(set(df_processed.columns).intersection(set(combined_tables[merge_table].columns)))))
+        candidate_keys = sorted(list(set(df_processed.columns).intersection(set(combined_tables[merge_table].columns))))
         if candidate_keys:
             merge_key = st.selectbox("Select merge key", candidate_keys)
         else:
