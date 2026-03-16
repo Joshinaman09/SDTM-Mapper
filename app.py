@@ -1,84 +1,8 @@
-import streamlit as st
-import json
-import tempfile
-import pandas as pd
-import pyreadstat
-import os
-import re
-from openai import OpenAI
-
-# ===============================
-# PAGE CONFIG
-# ===============================
-st.set_page_config(page_title="TrialMapper AI", layout="wide")
-
-# ===============================
-# HEADER
-# ===============================
-col1, col2 = st.columns([1,6])
-
-with col1:
-    st.image("logo.png", width=120)
-
-with col2:
-    st.markdown("""
-    # 🧬 TrialMapper AI
-
-    **AI-Powered Raw → SDTM Mapping Engine**
-
-    Automatically convert raw clinical datasets into **CDISC SDTM compliant datasets**
-    using AI assisted metadata interpretation.
-    """)
-
-st.markdown("---")
-
-# ===============================
-# SIDEBAR
-# ===============================
-with st.sidebar:
-
-    st.header("About TrialMapper AI")
-
-    st.write("""
-AI powered SDTM mapping assistant designed for:
-
-• Clinical Data Managers  
-• CDISC Programmers  
-• Biostatisticians  
-• Clinical Data Engineers  
-
-Key capabilities:
-
-• AI-driven SDTM variable mapping  
-• Raw metadata analysis  
-• MAIN + SUPP dataset generation  
-• Duplicate mapping detection  
-• Core variable validation
-""")
-
-# ===============================
-# CONFIG
-# ===============================
-MODEL_NAME = "gpt-4o-mini"
-
-api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
-
-if not api_key:
-    st.error("OPENAI_API_KEY not found.")
-    st.stop()
-
-client = OpenAI(api_key=api_key)
-
-# ===============================
-# JSON CLEANER
-# ===============================
-def extract_json(text):
-
-    text = text.strip()
-
-    text = re.sub(r"^```json\s*", "", text, flags=re.IGNORECASE)
-    text = re.sub(r"^```\s*", "", text)
-    text = re.sub(r"\s*```$", "", text)
+import streamlit as st import json import tempfile import pandas as pd import pyreadstat import os import re from openai import OpenAI # =============================== # PAGE CONFIG # =============================== st.set_page_config( page_title="TrialMapper AI", layout="wide" ) # =============================== # HEADER (LOGO + TITLE) # =============================== col1, col2 = st.columns([1,6]) with col1: st.image("logo.png", width=120) with col2: st.markdown(""" # 🧬 TrialMapper AI **AI-Powered Raw → SDTM Mapping Engine** Automatically convert raw clinical datasets into **CDISC SDTM compliant datasets** using AI assisted metadata interpretation. """) st.markdown("---") # =============================== # SIDEBAR INFO # =============================== with st.sidebar: st.header("About TrialMapper AI") st.write(""" AI powered SDTM mapping assistant designed for: • Clinical Data Managers • CDISC Programmers • Biostatisticians • Clinical Data Engineers Key capabilities: • AI-driven SDTM variable mapping • Raw metadata analysis • MAIN + SUPP dataset generation • Duplicate mapping detection • Core variable validation """) # =============================== # WELCOME DESCRIPTION # =============================== st.info(""" ### 🚀 How This Tool Works 1️⃣ Upload a **raw SAS dataset (.XPT or .sas7bdat)** 2️⃣ AI analyzes **variable names, labels, and sample values** 3️⃣ Suggested **SDTM mappings are generated automatically** 4️⃣ You can manually adjust mappings 5️⃣ The tool generates: • **MAIN SDTM dataset** • **SUPP supplemental dataset** • **Mapping validation** Designed to accelerate **clinical data standardization workflows**. """) # =============================== # CONFIG # =============================== MODEL_NAME = "gpt-4o-mini" api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY") if not api_key: st.error("OPENAI_API_KEY not found. Add it in Streamlit secrets.") st.stop() client = OpenAI(api_key=api_key) # =============================== # JSON CLEANER # =============================== def extract_json(text): text = text.strip() text = re.sub(r"^
+json\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^
+\s*", "", text) text = re.sub(r"\s*
+$", "", text)
 
     match = re.search(r"\{.*\}", text, flags=re.DOTALL)
 
@@ -86,6 +10,7 @@ def extract_json(text):
         raise ValueError("No JSON found")
 
     return json.loads(match.group(0))
+
 
 # ===============================
 # LOAD DOMAIN CONFIG
@@ -122,7 +47,7 @@ with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
     tmp_path = tmp.name
 
 # ===============================
-# READ SAS FILE
+# READ SAS
 # ===============================
 if suffix == ".xpt":
     df_raw, meta = pyreadstat.read_xport(tmp_path)
@@ -132,7 +57,7 @@ else:
 st.success(f"Loaded {df_raw.shape[1]} raw variables")
 
 # ===============================
-# FIND SAMPLE ROW
+# FIRST NON EMPTY ROW
 # ===============================
 sample_row = None
 
@@ -142,27 +67,24 @@ for i in range(len(df_raw)):
         break
 
 # ===============================
-# RAW METADATA (FIXED LABEL LOGIC)
+# RAW METADATA
 # ===============================
 raw_metadata = []
 
-label_dict = meta.column_names_to_labels or {}
-
 for col in df_raw.columns:
 
-    label = label_dict.get(col, "")
-
-    # fallback label if SAS label missing
-    if not label:
-        label = col.replace("_", " ").title()
+    try:
+        label = meta.column_labels[meta.column_names.index(col)]
+    except:
+        label = ""
 
     sample_val = None
 
     if sample_row is not None:
-        val = sample_row[col]
+        v = sample_row[col]
 
-        if pd.notna(val):
-            sample_val = str(val)
+        if not pd.isna(v):
+            sample_val = str(v)
 
     raw_metadata.append({
         "raw": col,
@@ -193,27 +115,23 @@ Allowed SDTM variables:
 Return JSON only.
 
 {{
-"domain":"{domain}",
+"domain": "{domain}",
 "mappings":[
 {{
-"raw":"",
-"raw_label":"",
-"sample_value":"",
-"sdtm":"",
-"type":""
+"raw":"<raw>",
+"raw_label":"<label>",
+"sample_value":"<sample>",
+"sdtm":"<SDTM variable or null>",
+"type":"<Character or Numeric>"
 }}
 ]
 }}
 
 Rules:
-Use CDISC SDTM standards.
-
-Examples:
-SUBJECT → USUBJID
-STUDY → STUDYID
-LABCODE → LBTESTCD
-LABVALUE → LBORRES
-LAB_UNIT → LBORRESU
+- Use only allowed SDTM variables
+- Use sample_value to infer meaning
+- Return raw JSON only
+- No markdown
 """
 
 # ===============================
@@ -221,7 +139,7 @@ LAB_UNIT → LBORRESU
 # ===============================
 if st.button("🚀 Generate AI Mapping"):
 
-    with st.spinner("Generating mapping..."):
+    with st.spinner("Calling OpenAI..."):
 
         resp = client.responses.create(
             model=MODEL_NAME,
@@ -239,7 +157,9 @@ if st.button("🚀 Generate AI Mapping"):
     except Exception as e:
 
         st.error(f"LLM returned invalid JSON: {e}")
+
         st.code(result)
+
         st.stop()
 
 # ===============================
@@ -332,11 +252,13 @@ main_df = pd.DataFrame()
 for m in updated:
 
     if m["sdtm"]:
+
         main_df[m["sdtm"]] = df_raw[m["raw"]]
 
 for col in core_cols:
 
     if col not in main_df.columns:
+
         main_df[col] = None
 
 main_df["DOMAIN"] = domain
