@@ -7,7 +7,6 @@ import os
 import re
 from openai import OpenAI
 
-
 # ===============================
 # PAGE CONFIG
 # ===============================
@@ -26,7 +25,6 @@ if not api_key:
     st.stop()
 
 client = OpenAI(api_key=api_key)
-
 
 # ===============================
 # HELPERS
@@ -344,3 +342,219 @@ if len(uploaded_files) == 1 and not do_merge and not do_unpivot:
 
 raw_metadata = build_raw_metadata(df_processed, meta=meta_for_labels)
 st.dataframe(pd.DataFrame(raw_metadata), use_container_width=True)
+
+# ===============================
+# LLM PROMPT
+# ===============================
+prompt = f"""
+You are an SDTM mapping expert.
+
+Target SDTM domain: {domain}
+
+Raw variables with labels and sample values:
+
+{json.dumps(raw_metadata, indent=2)}
+
+Allowed SDTM variables:
+{allowed_sdtm_vars}
+
+Return JSON ONLY in this format:
+
+{{
+  "domain": "{domain}",
+  "mappings": [
+    {{
+      "raw": "<raw>",
+      "raw_label": "<label>",
+      "sample_value": "<sample or null>",
+      "sdtm": "<SDTM variable or null>",
+      "type": "<Character or Numeric>"
+    }}
+  ]
+}}
+
+Rules:
+- Use ONLY allowed SDTM variables
+- Use raw name, label, and sample_value together
+- If unsure, use null
+- No markdown
+- Prefer standard CDISC mappings
+
+Helpful examples:
+SUBJECT -> USUBJID
+STUDY -> STUDYID
+LABCODE -> LBTESTCD
+TESTNAME -> LBTEST
+LABVALUE -> LBORRES
+LAB_UNIT -> LBORRESU
+VISIT -> VISIT
+"""
+
+# ===============================
+# GENERATE MAPPING
+# ===============================
+st.subheader("4️⃣ Generate AI Mapping")
+
+if st.button("🧠 Generate Mapping via LLM"):
+    with st.spinner("Calling model..."):
+        try:
+            resp = client.responses.create(
+                model=MODEL_NAME,
+                input=prompt
+            )
+            parsed = extract_json(resp.output_text)
+            st.session_state["mappings"] = parsed["mappings"]
+        except Exception as e:
+            st.error(f"Failed to generate mapping: {e}")
+            st.stop()
+
+if "mappings" not in st.session_state:
+    st.stop()
+
+# ===============================
+# MAPPING UI
+# ===============================
+st.subheader("5️⃣ Raw → SDTM Mapping")
+
+updated = []
+
+header = st.columns([2, 4, 3, 2, 4])
+header[0].markdown("**Raw**")
+header[1].markdown("**Raw Label**")
+header[2].markdown("**SDTM Variable**")
+header[3].markdown("**Type**")
+header[4].markdown("**Core**")
+
+for i, m in enumerate(st.session_state["mappings"]):
+    c1, c2, c3, c4, c5 = st.columns([2, 4, 3, 2, 4])
+
+    c1.write(m["raw"])
+    c2.write(m["raw_label"])
+
+    guess = m["sdtm"] if m.get("sdtm") in allowed_sdtm_vars else None
+
+    sdtm_val = c3.selectbox(
+        "",
+        options=[None] + allowed_sdtm_vars,
+        index=(allowed_sdtm_vars.index(guess) + 1 if guess else 0),
+        key=f"sdtm_{i}"
+    )
+
+    c4.write(m["type"])
+
+    core = sdtm_meta.get(sdtm_val, {}).get("core")
+    c5.write(core if core else "—")
+
+    updated.append({
+        "raw": m["raw"],
+        "raw_label": m["raw_label"],
+        "sdtm": sdtm_val,
+        "type": m["type"]
+    })
+
+# ===============================
+# DUPLICATE CHECK
+# ===============================
+st.subheader("🚨 Duplicate SDTM Variables")
+
+df_map = pd.DataFrame(updated)
+
+dups = (
+    df_map[df_map["sdtm"].notna()]
+    .groupby("sdtm")["raw"]
+    .nunique()
+    .reset_index(name="count")
+)
+
+dups = dups[dups["count"] > 1]
+
+if not dups.empty:
+    st.warning("Same SDTM variable mapped from multiple raw variables")
+    for _, r in dups.iterrows():
+        raws = df_map[df_map["sdtm"] == r["sdtm"]]["raw"].tolist()
+        st.write(f"**{r['sdtm']}** ← {', '.join(raws)}")
+else:
+    st.success("No duplicate SDTM mappings")
+
+# ===============================
+# BUILD MAIN DOMAIN
+# ===============================
+st.subheader("6️⃣ MAIN Domain Preview")
+
+main_df = pd.DataFrame()
+
+for m in updated:
+    if m["sdtm"]:
+        main_df[m["sdtm"]] = df_processed[m["raw"]]
+
+for col in core_cols:
+    if col not in main_df.columns:
+        main_df[col] = None
+
+main_df["DOMAIN"] = domain
+
+if sequence_field and sequence_field not in main_df.columns:
+    main_df[sequence_field] = range(1, len(main_df) + 1)
+
+st.dataframe(main_df.head(20), use_container_width=True)
+
+# ===============================
+# BUILD SUPP DOMAIN
+# ===============================
+st.subheader("7️⃣ SUPP Domain Preview")
+
+supp_rows = []
+unmapped = [m for m in updated if m["sdtm"] is None]
+
+for idx, row in main_df.iterrows():
+    for m in unmapped:
+        val = df_processed.loc[idx, m["raw"]]
+        if pd.isna(val):
+            continue
+
+        supp_rows.append({
+            "STUDYID": row.get("STUDYID"),
+            "RDOMAIN": domain,
+            "USUBJID": row.get("USUBJID"),
+            "IDVAR": sequence_field,
+            "IDVARVAL": row.get(sequence_field),
+            "QNAM": m["raw"].upper()[:8],
+            "QLABEL": m["raw_label"],
+            "QVAL": str(val),
+            "QORIG": "CRF",
+            "QEVAL": None
+        })
+
+supp_df = pd.DataFrame(supp_rows)
+
+if supp_df.empty:
+    st.info("No SUPP records generated")
+else:
+    st.dataframe(supp_df.head(20), use_container_width=True)
+
+# ===============================
+# DOWNLOADS
+# ===============================
+st.subheader("8️⃣ Download")
+
+st.download_button(
+    "⬇ Download Preprocessed Dataset",
+    df_processed.to_csv(index=False),
+    file_name="preprocessed_dataset.csv",
+    mime="text/csv"
+)
+
+st.download_button(
+    "⬇ Download MAIN Domain",
+    main_df.to_csv(index=False),
+    file_name=f"{domain}.csv",
+    mime="text/csv"
+)
+
+if not supp_df.empty:
+    st.download_button(
+        "⬇ Download SUPP Domain",
+        supp_df.to_csv(index=False),
+        file_name=f"SUPP{domain}.csv",
+        mime="text/csv"
+    )
