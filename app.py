@@ -1,8 +1,8 @@
 import streamlit as st
+import json
+import tempfile
 import pandas as pd
 import pyreadstat
-import tempfile
-import json
 import os
 import re
 from openai import OpenAI
@@ -10,15 +10,12 @@ from openai import OpenAI
 # ===============================
 # PAGE CONFIG
 # ===============================
-st.set_page_config(
-    page_title="TrialMapper AI",
-    layout="wide"
-)
+st.set_page_config(page_title="TrialMapper AI", layout="wide")
 
 # ===============================
-# HEADER (LOGO + TITLE)
+# HEADER
 # ===============================
-col1, col2 = st.columns([1, 6])
+col1, col2 = st.columns([1,6])
 
 with col1:
     st.image("logo.png", width=120)
@@ -26,53 +23,32 @@ with col1:
 with col2:
     st.markdown("""
     # 🧬 TrialMapper AI
-
     **AI-Powered Raw → SDTM Mapping Engine**
-
-    Automatically convert raw clinical datasets into **CDISC SDTM compliant datasets** using AI-assisted metadata interpretation.
     """)
 
 st.markdown("---")
 
 # ===============================
-# SIDEBAR INFO
+# SIDEBAR
 # ===============================
 with st.sidebar:
+
     st.header("About TrialMapper AI")
+
     st.write("""
-    AI-powered SDTM mapping assistant designed for:
+AI powered SDTM mapping assistant
 
-    • Clinical Data Managers  
-    • CDISC Programmers  
-    • Biostatisticians  
-    • Clinical Data Engineers  
+• Clinical Data Managers  
+• CDISC Programmers  
+• Biostatisticians  
+• Clinical Data Engineers  
 
-    Key capabilities:
+Features:
 
-    • AI-driven SDTM variable mapping  
-    • Raw metadata analysis  
-    • MAIN + SUPP dataset generation  
-    • Duplicate mapping detection  
-    • Core variable validation
-    """)
-
-# ===============================
-# WELCOME DESCRIPTION
-# ===============================
-st.info("""
-### 🚀 How This Tool Works
-
-1️⃣ Upload a **raw SAS dataset (.XPT or .sas7bdat)**  
-2️⃣ AI analyzes **variable names, labels, and sample values**  
-3️⃣ Suggested **SDTM mappings are generated automatically**  
-4️⃣ You can manually adjust mappings  
-5️⃣ The tool generates:
-
-• **MAIN SDTM dataset**  
-• **SUPP supplemental dataset**  
-• **Mapping validation**
-
-Designed to accelerate **clinical data standardization workflows**.
+• AI-driven SDTM mapping  
+• Metadata analysis  
+• MAIN + SUPP dataset generation  
+• Duplicate detection
 """)
 
 # ===============================
@@ -83,7 +59,7 @@ MODEL_NAME = "gpt-4o-mini"
 api_key = st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY")
 
 if not api_key:
-    st.error("OPENAI_API_KEY not found. Add it in Streamlit secrets.")
+    st.error("OPENAI_API_KEY not found.")
     st.stop()
 
 client = OpenAI(api_key=api_key)
@@ -92,20 +68,24 @@ client = OpenAI(api_key=api_key)
 # JSON CLEANER
 # ===============================
 def extract_json(text):
+
     text = text.strip()
+
     text = re.sub(r"^```json\s*", "", text, flags=re.IGNORECASE)
     text = re.sub(r"^```\s*", "", text)
     text = re.sub(r"\s*```$", "", text)
 
     match = re.search(r"\{.*\}", text, flags=re.DOTALL)
+
     if not match:
         raise ValueError("No JSON found")
+
     return json.loads(match.group(0))
 
 # ===============================
 # LOAD DOMAIN CONFIG
 # ===============================
-with open("domain_config.json", encoding="utf-8") as f:
+with open("domain_config.json") as f:
     DOMAIN_CONFIG = json.load(f)
 
 domain = st.selectbox("Select SDTM Domain", sorted(DOMAIN_CONFIG.keys()))
@@ -119,116 +99,102 @@ sequence_field = cfg.get("sequence_field")
 # ===============================
 # FILE UPLOAD
 # ===============================
-uploaded_files = [
-    "LAB.xpt", "LAB1.xpt", "LAB2.xpt", "labcode.xpt", "VS.xpt"
-]
+uploaded_files = st.file_uploader(
+    "Upload SAS Files",
+    type=["xpt","sas7bdat"],
+    accept_multiple_files=True
+)
 
-# ===============================
-# Load SAS Files with Error Handling
-# ===============================
-def load_sas_file(file_path):
-    """Function to load SAS files with error handling."""
-    try:
-        if file_path.lower().endswith(".xpt"):
-            df, _ = pyreadstat.read_xport(file_path)
-        else:
-            df, _ = pyreadstat.read_sas7bdat(file_path)
-        return df
-    except pyreadstat.pyreadstat.PyreadstatError as e:
-        st.error(f"Error reading {file_path}: {e}")
-        return None
+primary_key = st.text_input(
+    "Optional Merge Key (Example: LABCODE, USUBJID)",
+    help="Leave empty to append files"
+)
 
-# Load the uploaded SAS files
-dfs = {}
-for file in uploaded_files:
-    file_name = file.split("/")[-1]
-    dfs[file_name] = load_sas_file(file)
-    if dfs[file_name] is None:
-        st.error(f"Failed to load {file_name}. Please check the file.")
-        st.stop()  # Stop if any file failed to load
-
-# Check that 'LAB' file is loaded
-if 'LAB.xpt' not in dfs:
-    st.error("The 'LAB.xpt' file is missing or could not be loaded.")
+if not uploaded_files:
     st.stop()
 
 # ===============================
-# Check column names
+# LOAD FILES
 # ===============================
-def check_columns(dfs):
-    """Function to print column names of each dataframe."""
-    for key, df in dfs.items():
-        st.write(f"Columns in {key}: {df.columns.tolist()}")
+dfs = []
 
-# Check columns of the loaded files
-check_columns(dfs)
+for uploaded in uploaded_files:
 
-# ===============================
-# Rename columns if necessary
-# ===============================
-# Assuming the common column for merging should be 'USUBJID'
-# We will standardize column names before merging
-def standardize_column_names(df, column_mapping):
-    """Standardize column names to 'USUBJID' if they are named differently."""
-    df.rename(columns=column_mapping, inplace=True)
+    suffix = ".xpt" if uploaded.name.lower().endswith(".xpt") else ".sas7bdat"
 
-# Define column mappings (adjust based on the column names you find)
-column_mappings = {
-    'SUBJECT': 'USUBJID',  # 'SUBJECT' column in the LAB dataset maps to 'USUBJID'
-    'PATIENT': 'USUBJID'   # 'PATIENT' column in LAB, LAB1, LAB2 maps to 'USUBJID'
-}
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(uploaded.read())
+        tmp_path = tmp.name
 
-# Standardize columns in each dataset
-for key, df in dfs.items():
-    standardize_column_names(df, column_mappings)
+    if suffix == ".xpt":
+        df, meta = pyreadstat.read_xport(tmp_path)
+    else:
+        df, meta = pyreadstat.read_sas7bdat(tmp_path)
+
+    dfs.append(df)
 
 # ===============================
-# Drop duplicate USUBJID columns
+# APPEND OR MERGE
 # ===============================
-def drop_duplicate_usubjid_columns(df):
-    """Function to drop any duplicate 'USUBJID' columns generated after merging."""
-    cols = [col for col in df.columns if 'USUBJID' not in col]
-    return df[cols + ['USUBJID']]
+if primary_key:
 
-# Merge the DataFrames based on a common identifier 'USUBJID'
-merged_df = dfs['LAB.xpt'].merge(dfs['LAB1.xpt'], on="USUBJID", how="outer")
-merged_df = merged_df.merge(dfs['LAB2.xpt'], on="USUBJID", how="outer")
-merged_df = merged_df.merge(dfs['labcode.xpt'], on="USUBJID", how="outer")
-merged_df = merged_df.merge(dfs['VS.xpt'], on="USUBJID", how="outer")
+    st.info(f"Merging files using key: {primary_key}")
 
-# Drop duplicate 'USUBJID' columns, if any
-merged_df = drop_duplicate_usubjid_columns(merged_df)
+    df_raw = dfs[0]
 
-st.success(f"Merged dataset with {merged_df.shape[0]} rows and {merged_df.shape[1]} columns.")
+    for df in dfs[1:]:
 
-# ===============================
-# UNPIVOTING
-# ===============================
-def unpivot_df(df, id_vars, value_vars):
-    """Unpivot the dataset, keeping 'id_vars' and transforming 'value_vars'."""
-    return pd.melt(df, id_vars=id_vars, value_vars=value_vars, var_name="Variable", value_name="Value")
+        df_raw = pd.merge(
+            df_raw,
+            df,
+            on=primary_key,
+            how="left"
+        )
 
-id_vars = ['USUBJID', 'STUDYID', 'RDOMAIN']
-value_vars = [col for col in merged_df.columns if col not in id_vars]  # Example, unpivot all non-id columns
+else:
 
-unpivoted_df = unpivot_df(merged_df, id_vars, value_vars)
-st.success(f"Unpivoted dataset has {unpivoted_df.shape[0]} rows.")
+    st.info("Appending files")
+
+    df_raw = pd.concat(dfs, ignore_index=True)
+
+st.success(f"Dataset shape: {df_raw.shape}")
 
 # ===============================
-# Preprocessing (clean, transform)
+# FIRST NON EMPTY ROW
 # ===============================
-def preprocess_data(df):
-    """Preprocessing the unpivoted data before mapping."""
-    df = df.dropna(subset=["Value", "Variable"])
-    df["Variable"] = df["Variable"].str.upper().str.replace(" ", "_")
-    return df
+sample_row = None
 
-processed_df = preprocess_data(unpivoted_df)
+for i in range(len(df_raw)):
+    if df_raw.iloc[i].notna().any():
+        sample_row = df_raw.iloc[i]
+        break
 
 # ===============================
-# DISPLAY DATAFRAME
+# RAW METADATA
 # ===============================
-st.dataframe(processed_df.head(20), use_container_width=True)
+raw_metadata = []
+
+for col in df_raw.columns:
+
+    sample_val = None
+
+    if sample_row is not None:
+
+        v = sample_row[col]
+
+        if not pd.isna(v):
+            sample_val = str(v)
+
+    raw_metadata.append({
+        "raw": col,
+        "raw_label": col,
+        "type": "Character" if df_raw[col].dtype == object else "Numeric",
+        "sample_value": sample_val
+    })
+
+st.subheader("📄 Raw Metadata")
+
+st.dataframe(pd.DataFrame(raw_metadata), use_container_width=True)
 
 # ===============================
 # LLM PROMPT
@@ -236,11 +202,11 @@ st.dataframe(processed_df.head(20), use_container_width=True)
 prompt = f"""
 You are an SDTM mapping expert.
 
-Target SDTM domain: {domain}
+Target domain: {domain}
 
-Raw variables with labels and sample values:
+Raw variables:
 
-{json.dumps(processed_df.to_dict(orient="records"), indent=2)}
+{json.dumps(raw_metadata, indent=2)}
 
 Allowed SDTM variables:
 {allowed_sdtm_vars}
@@ -248,129 +214,104 @@ Allowed SDTM variables:
 Return JSON only.
 
 {{
-"domain": "{domain}",
+"domain":"{domain}",
 "mappings":[
 {{
-"raw":"<raw>",
-"raw_label":"<label>",
-"sample_value":"<sample>",
-"sdtm":"<SDTM variable or null>",
-"type":"<Character or Numeric>"
-}}]
+"raw":"",
+"sdtm":"",
+"type":""
 }}
-
-Rules:
-- Use only allowed SDTM variables
-- Use sample_value to infer meaning
-- Return raw JSON only
-- No markdown
+]
+}}
 """
 
 # ===============================
 # GENERATE MAPPING
 # ===============================
 if st.button("🚀 Generate AI Mapping"):
+
     with st.spinner("Calling OpenAI..."):
+
         resp = client.responses.create(
             model=MODEL_NAME,
             input=prompt
         )
+
         result = resp.output_text
 
     try:
+
         parsed = extract_json(result)
+
         st.session_state["mappings"] = parsed["mappings"]
+
     except Exception as e:
+
         st.error(f"LLM returned invalid JSON: {e}")
+
         st.code(result)
+
         st.stop()
+
+if "mappings" not in st.session_state:
+    st.stop()
 
 # ===============================
 # MAPPING UI
 # ===============================
-if "mappings" not in st.session_state:
-    st.stop()
-
 st.subheader("🔗 Raw → SDTM Mapping")
 
 updated = []
 
-header = st.columns([2, 4, 3, 2, 4])
+header = st.columns([2,4,3])
 
 header[0].markdown("**Raw**")
-header[1].markdown("**Raw Label**")
-header[2].markdown("**SDTM Variable**")
-header[3].markdown("**Type**")
-header[4].markdown("**Core**")
+header[1].markdown("**SDTM Variable**")
+header[2].markdown("**Type**")
 
 for i, m in enumerate(st.session_state["mappings"]):
-    c1, c2, c3, c4, c5 = st.columns([2, 4, 3, 2, 4])
+
+    c1,c2,c3 = st.columns([2,4,3])
+
     c1.write(m["raw"])
-    c2.write(m["raw_label"])
 
-    guess = m["sdtm"] if m["sdtm"] in allowed_sdtm_vars else None
-
-    sdtm_val = c3.selectbox(
+    sdtm_val = c2.selectbox(
         "",
         options=[None] + allowed_sdtm_vars,
-        index=(allowed_sdtm_vars.index(guess) + 1 if guess else 0),
         key=f"sdtm_{i}"
     )
 
-    c4.write(m["type"])
-
-    core = sdtm_meta.get(sdtm_val, {}).get("core")
-    c5.write(core if core else "-")
+    c3.write(m["type"])
 
     updated.append({
         "raw": m["raw"],
-        "raw_label": m["raw_label"],
-        "sdtm": sdtm_val,
-        "type": m["type"]
+        "sdtm": sdtm_val
     })
 
 # ===============================
-# DUPLICATE CHECK
-# ===============================
-st.subheader("🚨 Duplicate SDTM Variables")
-
-df_map = pd.DataFrame(updated)
-dups = (
-    df_map[df_map["sdtm"].notna()]
-    .groupby("sdtm")["raw"]
-    .nunique()
-    .reset_index(name="count")
-)
-
-dups = dups[dups["count"] > 1]
-
-if not dups.empty:
-    st.warning("Duplicate SDTM mappings found")
-    for _, r in dups.iterrows():
-        raws = df_map[df_map["sdtm"] == r["sdtm"]]["raw"].tolist()
-        st.write(f"{r['sdtm']} ← {', '.join(raws)}")
-else:
-    st.success("No duplicate mappings")
-
-# ===============================
-# DOWNLOAD MAIN DOMAIN
+# BUILD MAIN DOMAIN
 # ===============================
 st.subheader("📊 MAIN Domain Preview")
 
 main_df = pd.DataFrame()
 
 for m in updated:
+
     if m["sdtm"]:
-        main_df[m["sdtm"]] = merged_df[m["raw"]]
+
+        main_df[m["sdtm"]] = df_raw[m["raw"]]
 
 for col in core_cols:
+
     if col not in main_df.columns:
+
         main_df[col] = None
 
 main_df["DOMAIN"] = domain
 
 if sequence_field and sequence_field not in main_df.columns:
-    main_df[sequence_field] = range(1, len(main_df) + 1)
+
+    main_df[sequence_field] = range(1,len(main_df)+1)
 
 st.dataframe(main_df.head(20), use_container_width=True)
 
